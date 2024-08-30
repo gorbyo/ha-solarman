@@ -43,20 +43,37 @@ DEFAULT_REGISTERS_CODE = 0x03
 DEFAULT_REGISTERS_MIN_SPAN = 25
 DEFAULT_DIGITS = 6
 
-AUTO_RECONNECT = True
-ACTION_ATTEMPTS = 5
-ACTION_ATTEMPTS_MAX = ACTION_ATTEMPTS * 6
+PROFILE_REDIRECT_TABLE = { "sofar_hyd3k-6k-es.yaml": "sofar_hyd-es.yaml", "hyd-zss-hp-3k-6k.yaml": "zcs_azzurro-hyd-zss-hp.yaml", "solis_1p8k-5g.yaml": "solis_1p-5g.yaml" }
 
+AUTO_RECONNECT = True
+
+# Data are requsted in most cases in different invervals:
+# - from 5s for power sensors for example (deye_sg04lp3, ..)
+# - up to 5m (deye_sg04lp3, ..) or 10m (kstar_hybrid, ..) for static valus like Serial Number, etc.
+#
+# Changing of this value does not affects the amount of stored data by HA in any way
+# HA's Recorder is controlling that using its sampling rate (default is 5m)
+# On the contrary changing this value can break:
+# - Request scheduling according "update_interval" properties set in profiles
+# - Inverter configuring flows
+# - Behavior of integration services
+#
 TIMINGS_INTERVAL = 5
-TIMINGS_UPDATE_INTERVAL = td(seconds = TIMINGS_INTERVAL)
+TIMINGS_INTERVAL_SCALE = 1
+TIMINGS_UPDATE_INTERVAL = td(seconds = TIMINGS_INTERVAL * TIMINGS_INTERVAL_SCALE)
 TIMINGS_UPDATE_TIMEOUT = TIMINGS_INTERVAL * 6
 TIMINGS_SOCKET_TIMEOUT = TIMINGS_INTERVAL * 4 - 1
 TIMINGS_WAIT_SLEEP = 0.2
 TIMINGS_WAIT_FOR_SLEEP = 1
 
+# Constants also tied to TIMINGS_INTERVAL to ensure maximum synergy
+ACTION_ATTEMPTS = 5
+ACTION_ATTEMPTS_MAX = ACTION_ATTEMPTS * 6
+
 ATTR_FRIENDLY_NAME = "friendly_name"
 
 REQUEST_UPDATE_INTERVAL = "update_interval"
+REQUEST_MAX_SIZE = 125
 REQUEST_MIN_SPAN = "min_span"
 REQUEST_CODE = "code"
 REQUEST_CODE_ALT = "mb_functioncode"

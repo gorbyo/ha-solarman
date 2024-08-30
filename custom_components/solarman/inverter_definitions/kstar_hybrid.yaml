@@ -4,28 +4,24 @@
 #
 # This inverter exposes its data in the following registers (although not all of them are used by this definition file):
 #
-#  - INPUT_REGISTERS   3000 - 3660 decimal, 0x0BB8 - 0x0E4C hexadecimal
-#  - HOLDING_REGISTERS 3200 - 3237 decimal. 0x0C80 - 0x0C9B  hexadecimal
-#
-# Each request can get a maximum of 125 registers as per modbus protocol (start and end included), so we need to
-# split up the list of used registers into multiple requests of maximum 125 registers each.
+#  - INPUT_REGISTERS   3000 - 3792 decimal, 0x0BB8 - 0x0ED0 hexadecimal, 0x04 function code
+#  - HOLDING_REGISTERS 3200 - 3246 decimal. 0x0C80 - 0x0CAE  hexadecimal, 0x03 function code
 #
 
+info:
+  manufacturer: KSTAR
+  model: Hybrid Inverter
+
 default:
-  update_interval: 10
-  min_span: 6
+  update_interval: 60
   code: 0x04
   digits: 6
 
-requests:
-  - start: 3200
-    end: 3217
-    code: 0x03
-
 parameters:
-  - group: solar
+  - group: PV
     items:
       - name: "PV1 Voltage"
+        realtime:
         class: "voltage"
         state_class: "measurement"
         uom: "V"
@@ -35,6 +31,7 @@ parameters:
         icon: "mdi:solar-power"
 
       - name: "PV2 Voltage"
+        realtime:
         class: "voltage"
         state_class: "measurement"
         uom: "V"
@@ -44,6 +41,7 @@ parameters:
         icon: "mdi:solar-power"
 
       - name: "PV1 Current"
+        realtime:
         class: "current"
         state_class: "measurement"
         uom: "A"
@@ -53,6 +51,7 @@ parameters:
         icon: "mdi:solar-power"
 
       - name: "PV2 Current"
+        realtime:
         class: "current"
         state_class: "measurement"
         uom: "A"
@@ -61,7 +60,23 @@ parameters:
         registers: [3013]
         icon: "mdi:solar-power"
 
+      # PV - The combined power of Input 1 & 2 (L:1W, H:10W)
+      - name: "PV Power"
+        description: Combined power of all inputs
+        realtime:
+        class: "power"
+        state_class: "measurement"
+        uom: "W"
+        rule: 1
+        digits: 0
+        registers: [3024, 3025]
+        sensors:
+          - registers: [3024]
+          - registers: [3025]
+        icon: "mdi:solar-power-variant"
+
       - name: "PV1 Power"
+        realtime:
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -71,6 +86,7 @@ parameters:
         icon: "mdi:solar-power"
 
       - name: "PV2 Power"
+        realtime:
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -81,6 +97,7 @@ parameters:
 
       - name: "Today Production"
         friendly_name: Today's Production
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -90,6 +107,7 @@ parameters:
         icon: "mdi:solar-power"
 
       - name: "Monthly Production"
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -99,6 +117,7 @@ parameters:
         icon: "mdi:solar-power"
 
       - name: "Yearly Production"
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -107,7 +126,9 @@ parameters:
         registers: [3040, 3039]
         icon: "mdi:solar-power"
 
-      - name: "Cumulative Production"
+      - name: "Total Production"
+        alt: "Cumulative Production"
+        update_interval: 30
         class: "energy"
         state_class: "total"
         uom: "kWh"
@@ -119,7 +140,9 @@ parameters:
   - group: Power Grid
     items:
       # Should this be the sum of the 3 phases "Meter Power"?
-      - name: "Total Grid Power"
+      - name: "Grid Power"
+        alt: "Total Grid Power"
+        realtime:
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -131,6 +154,7 @@ parameters:
       - name: Today Energy Import
         alt: Daily Energy Purchased
         friendly_name: Today's Energy Import
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -141,6 +165,7 @@ parameters:
 
       - name: Monthly Energy Import
         alt: Monthly Energy Purchased
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -151,6 +176,7 @@ parameters:
 
       - name: Yearly Energy Import
         alt: Yearly Energy Purchased
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -161,6 +187,7 @@ parameters:
 
       - name: Total Energy Import
         alt: Cumulative Energy Purchased
+        update_interval: 30
         class: "energy"
         state_class: "total"
         uom: "kWh"
@@ -172,6 +199,7 @@ parameters:
       - name: Today Energy Export
         alt: Daily Energy Feed-In
         friendly_name: Today's Energy Export
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -182,6 +210,7 @@ parameters:
 
       - name: Monthly Energy Export
         alt: Monthly Energy Feed-In
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -192,6 +221,7 @@ parameters:
 
       - name: Yearly Energy Export
         alt: Yearly Energy Feed-In
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -202,6 +232,7 @@ parameters:
 
       - name: Total Energy Export
         alt: Cumulative Grid Feed-In
+        update_interval: 30
         class: "energy"
         state_class: "total"
         uom: "kWh"
@@ -213,7 +244,9 @@ parameters:
   - group: Electricity Consumption
     items:
       # Should this be the sum of the 3 phases "Load Power"?
-      - name: "Total Consumption Power"
+      - name: "Load Power"
+        alt: "Total Consumption Power"
+        update_interval: 30
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -225,6 +258,7 @@ parameters:
       - name: Today Load Consumption
         alt: Daily Consumption
         friendly_name: Today's Load Consumption
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -233,7 +267,8 @@ parameters:
         registers: [3147]
         icon: "mdi:home-lightning-bolt"
 
-      - name: "Monthly Consumption"
+      - name: "Monthly Load Consumption"
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -242,7 +277,8 @@ parameters:
         registers: [3149, 3148]
         icon: "mdi:home-lightning-bolt"
 
-      - name: "Yearly Consumption"
+      - name: "Yearly Load Consumption"
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -251,7 +287,8 @@ parameters:
         registers: [3151, 3150]
         icon: "mdi:home-lightning-bolt"
 
-      - name: "Cumulative Consumption"
+      - name: "Total Load Consumption"
+        update_interval: 30
         class: "energy"
         state_class: "total"
         uom: "kWh"
@@ -262,9 +299,10 @@ parameters:
 
   - group: Battery
     items:
-      - name: "Battery Type"
-        class: "battery"
-        state_class: "measurement"
+      - name: "Battery Control Mode"
+        update_interval: 300
+        class: "enum"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
@@ -277,6 +315,7 @@ parameters:
             value: "LFP"
 
       - name: "Battery Voltage"
+        realtime:
         class: "voltage"
         state_class: "measurement"
         uom: "V"
@@ -286,6 +325,7 @@ parameters:
         icon: "mdi:battery-charging"
 
       - name: "Battery Current"
+        realtime:
         class: "current"
         state_class: "measurement"
         uom: "A"
@@ -295,6 +335,7 @@ parameters:
         icon: "mdi:battery-charging-10"
 
       - name: "Battery Power"
+        realtime:
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -303,7 +344,8 @@ parameters:
         registers: [3065]
         icon: "mdi:battery-charging-high"
 
-      - name: "Battery SoC"
+      - name: "Battery"
+        realtime:
         class: "battery"
         state_class: "measurement"
         uom: "%"
@@ -313,6 +355,7 @@ parameters:
         icon: "mdi:battery"
 
       - name: "Battery Temperature"
+        update_interval: 30
         class: "temperature"
         state_class: "measurement"
         uom: "°C"
@@ -322,7 +365,8 @@ parameters:
         icon: "mdi:battery-heart-outline"
 
       - name: "Battery Discharge Capacity Depth"
-        class: "battery"
+        update_interval: 300
+        class: ""
         state_class: "measurement"
         uom: "%"
         scale: 1
@@ -333,7 +377,8 @@ parameters:
           min: 10
           max: 95
 
-      - name: "Battery Radiator Temperature"
+      - name: "Battery Heatsink Temperature"
+        update_interval: 30
         class: "temperature"
         state_class: "measurement"
         uom: "°C"
@@ -342,8 +387,19 @@ parameters:
         registers: [3056]
         icon: "mdi:battery-heart-outline"
 
+      - name: "Battery SOH"
+        class: ""
+        state_class: "measurement"
+        uom: "%"
+        scale: 0.1
+        rule: 1
+        digits: 2
+        registers: [3075]
+        icon: "mdi:battery-heart"
+
       - name: Total Battery Discharge
         alt: Battery Total Discharge
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -355,6 +411,7 @@ parameters:
       - name: "Today Battery Discharge"
         alt: Battery Daily Discharge
         friendly_name: Today's Battery Discharge
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -365,6 +422,7 @@ parameters:
 
       - name: "Total Battery Charge"
         alt: "Battery Total Charge"
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -376,6 +434,7 @@ parameters:
       - name: "Today Battery Charge"
         alt: Battery Daily Charge
         friendly_name: Today's Battery Charge
+        update_interval: 30
         class: "energy"
         state_class: "total_increasing"
         uom: "kWh"
@@ -387,8 +446,9 @@ parameters:
   - group: Inverter Information
     items:
       - name: "Inverter Working Mode"
-        class: ""
-        state_class: "measurement"
+        update_interval: 300
+        class: "enum"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
@@ -403,8 +463,9 @@ parameters:
         icon: "mdi:wrench"
 
       - name: "Inverter Model"
-        class: ""
-        state_class: "measurement"
+        update_interval: 600
+        class: "enum"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
@@ -453,8 +514,9 @@ parameters:
         icon: "mdi:wrench"
 
       - name: "System status"
-        class: ""
-        state_class: "measurement"
+        update_interval: 30
+        class: "enum"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
@@ -463,7 +525,7 @@ parameters:
           - key: 0
             value: "Initialize"
           - key: 1
-            value: "Stand-by"
+            value: "Standby"
           - key: 2
             value: "Hybrid Grid"
           - key: 3
@@ -490,16 +552,17 @@ parameters:
             value: "Permanent Error"
         icon: "mdi:wrench"
 
-      - name: "Inverter status"
-        class: ""
-        state_class: "measurement"
+      - name: "Inverter Status"
+        update_interval: 30
+        class: "enum"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
         registers: [3047]
         lookup:
           - key: 0
-            value: "Stand-by"
+            value: "Standby"
           - key: 1
             value: "Off-Grid"
           - key: 2
@@ -510,16 +573,17 @@ parameters:
             value: "On-Grid to Off-Grid"
         icon: "mdi:wrench"
 
-      - name: "DCDC status"
-        class: ""
-        state_class: "measurement"
+      - name: "DCDC Status"
+        update_interval: 30
+        class: "enum"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
         registers: [3048]
         lookup:
           - key: 0
-            value: "Stand-by"
+            value: "Standby"
           - key: 1
             value: "Soft Boot"
           - key: 2
@@ -529,8 +593,9 @@ parameters:
         icon: "mdi:wrench"
 
       - name: "DSP Alarm Code"
+        update_interval: 30
         class: ""
-        state_class: "measurement"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 6
@@ -538,8 +603,9 @@ parameters:
         icon: "mdi:wrench"
 
       - name: "DSP Error Code"
+        update_interval: 30
         class: ""
-        state_class: "measurement"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 6
@@ -547,8 +613,9 @@ parameters:
         icon: "mdi:wrench"
 
       - name: "Grid Standard"
-        class: ""
-        state_class: "measurement"
+        update_interval: 600
+        class: "enum"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
@@ -601,47 +668,56 @@ parameters:
         icon: "mdi:wrench"
 
       - name: "Inverter Model Name"
+        update_interval: 600
         class: ""
-        state_class: "measurement"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 5
         registers: [3200, 3201, 3202, 3203, 3204, 3205, 3206, 3207]
+        code: 0x03
         icon: "mdi:wrench"
 
       - name: "Inverter Battery Name"
+        update_interval: 600
         class: ""
-        state_class: "measurement"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 5
         registers: [3208, 3209, 3210, 3211, 3212, 3213, 3214, 3215]
+        code: 0x03
         icon: "mdi:wrench"
 
       # ARM AND DSP version numbers ("VX.Y.Z") are set in the two bytes on each register. The first byte contains the
       # X.Y part (scale 0.1), and the second by contains the Z part. How should we transform these values from a number
       # to a parsed string?
       - name: "ARM Version Number"
+        update_interval: 600
         class: ""
-        state_class: "measurement"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
         registers: [3216]
+        code: 0x03
         icon: "mdi:wrench"
 
       - name: "DSP Version Number"
+        update_interval: 600
         class: ""
-        state_class: "measurement"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 1
         registers: [3217]
+        code: 0x03
         icon: "mdi:wrench"
 
-      - name: "Inverter SN Number"
+      - name: "Device Serial Number"
+        update_interval: 600
         class: ""
-        state_class: "measurement"
+        state_class: ""
         uom: ""
         scale: 1
         rule: 5
@@ -652,6 +728,7 @@ parameters:
   - group: Inverter
     items:
       - name: "Inverter Bus Voltage"
+        realtime:
         class: "voltage"
         state_class: "measurement"
         uom: "V"
@@ -661,6 +738,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "Inverter DC Bus Voltage"
+        realtime:
         class: "voltage"
         state_class: "measurement"
         uom: "V"
@@ -670,6 +748,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "Inverter Radiator Temperature"
+        update_interval: 30
         class: "temperature"
         state_class: "measurement"
         uom: "°C"
@@ -679,6 +758,7 @@ parameters:
         icon: "mdi:thermometer"
 
       - name: "Chassis Internal Temperature"
+        update_interval: 30
         class: "temperature"
         state_class: "measurement"
         uom: "°C"
@@ -694,6 +774,7 @@ parameters:
   - group: R Phase
     items:
       - name: "R-phase Grid Voltage"
+        realtime:
         class: "voltage"
         state_class: "measurement"
         uom: "V"
@@ -703,6 +784,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Grid Frequency"
+        realtime:
         class: "frequency"
         state_class: "measurement"
         uom: "Hz"
@@ -712,6 +794,7 @@ parameters:
         icon: "mdi:sine-wave"
 
       - name: "R-phase Meter Current"
+        realtime:
         class: "current"
         state_class: "measurement"
         uom: "A"
@@ -721,6 +804,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Grid Power"
+        realtime:
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -730,6 +814,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Inverter Voltage"
+        realtime:
         class: "voltage"
         state_class: "measurement"
         uom: "V"
@@ -739,6 +824,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Inverter Current"
+        realtime:
         class: "current"
         state_class: "measurement"
         uom: "A"
@@ -748,6 +834,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Inverter Frequency"
+        realtime:
         class: "frequency"
         state_class: "measurement"
         uom: "Hz"
@@ -757,6 +844,7 @@ parameters:
         icon: "mdi:sine-wave"
 
       - name: "R-phase Inverter Power"
+        realtime:
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -766,6 +854,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Backup Voltage"
+        realtime:
         class: "voltage"
         state_class: "measurement"
         uom: "V"
@@ -775,6 +864,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Backup Current"
+        realtime:
         class: "current"
         state_class: "measurement"
         uom: "A"
@@ -784,6 +874,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Backup Power"
+        realtime:
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -793,6 +884,7 @@ parameters:
         icon: "mdi:home-lightning-bolt"
 
       - name: "R-phase Load Power"
+        realtime:
         class: "power"
         state_class: "measurement"
         uom: "W"

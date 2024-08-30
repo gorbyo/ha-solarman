@@ -84,8 +84,9 @@ def register_services(hass: HomeAssistant) -> None:
 
         result = {}
 
-        for i in range(0, quantity):
-            result[register + i] = response[i]
+        if response:
+            for i in range(0, quantity):
+                result[register + i] = response[i]
 
         return result
 
@@ -114,8 +115,9 @@ def register_services(hass: HomeAssistant) -> None:
 
         result = {}
 
-        for i in range(0, quantity):
-            result[register + i] = response[i]
+        if response:
+            for i in range(0, quantity):
+                result[register + i] = response[i]
 
         return result
 
@@ -172,7 +174,7 @@ def register_services(hass: HomeAssistant) -> None:
     )
 
     hass.services.async_register(
-        DOMAIN, SERVICE_READ_INPUT_REGISTERS, read_holding_registers, schema = SERVICE_READ_REGISTERS_SCHEMA, supports_response = SupportsResponse.OPTIONAL
+        DOMAIN, SERVICE_READ_INPUT_REGISTERS, read_input_registers, schema = SERVICE_READ_REGISTERS_SCHEMA, supports_response = SupportsResponse.OPTIONAL
     )
 
     hass.services.async_register(

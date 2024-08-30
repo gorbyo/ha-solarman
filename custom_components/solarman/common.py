@@ -1,5 +1,6 @@
 import os
 import yaml
+import struct
 import asyncio
 import aiofiles
 
@@ -26,14 +27,26 @@ async def yaml_open(file):
     async with aiofiles.open(file) as f:
         return yaml.safe_load(await f.read())
 
-def group_when(iterable, predicate):
+def process_profile(filename):
+    return filename if not filename in PROFILE_REDIRECT_TABLE else PROFILE_REDIRECT_TABLE[filename]
+
+def is_platform(description, value):
+    return (description["platform"] if "platform" in description else "sensor") == value
+
+def all_same(values):
+    return all(i == values[0] for i in values)
+
+def group_when(iterable, predicate, max_size = REQUEST_MAX_SIZE):
     i, x, size = 0, 0, len(iterable)
     while i < size - 1:
-        if predicate(iterable[i], iterable[i + 1]):
+        if predicate(iterable[i], iterable[i + 1]) or iterable[i + 1] - iterable[x] >= max_size:
             yield iterable[x:i + 1]
             x = i + 1
         i += 1
     yield iterable[x:size]
+
+def is_ethernet_frame(frame):
+    return frame[3:5] == struct.pack("<H", 0x4510) and len(frame) > 9 and int.from_bytes(frame[5:6], byteorder = "big") == len(frame[6:]) and int.from_bytes(frame[8:9], byteorder = "big") == len(frame[9:])
 
 def format_exception(e):
     return f"{type(e).__name__}{f': {e}' if f'{e}' else ''}"
@@ -52,6 +65,9 @@ def get_request_start(request):
 
 def get_request_end(request):
     return request[REQUEST_END]
+
+def get_attr(dict, key, default = None):
+    return value if key in dict and (value := dict[key]) else default
 
 def get_battery_power_capacity(capacity, voltage):
     return capacity * voltage / 1000

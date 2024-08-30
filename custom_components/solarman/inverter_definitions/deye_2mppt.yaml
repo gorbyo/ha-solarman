@@ -1,6 +1,6 @@
 #
 # First version: 22.02.2023
-# Latest update: 12.08.2024
+# Latest update: 13.08.2024
 # Microinverter SUNX (DEYE/VESDAS ??? - X because i have no dang clue what shares those registers :) )
 # v0.1  Added all the cool registers from Deye_Modbus.-.-.V118.pdf
 # 2x MPPT, 2x inverter
@@ -152,7 +152,7 @@ parameters:
         class: ""
         state_class: ""
         uom: "%"
-        scale: 0.1
+        scale: 1
         rule: 1
         registers: [0x0028]
         configurable:
@@ -247,12 +247,11 @@ parameters:
         registers: [0x0023]
         icon: ""
 
-  - group: Inverter
+  - group: Device
     items:
       # Device - Operating (Running) state
       - name: "Device State"
-        update_interval: 30
-        class: ""
+        class: "enum"
         state_class: ""
         uom: ""
         scale: 1
@@ -262,7 +261,6 @@ parameters:
         range:
           min: 0
           max: 5
-        options: ["Standby", "Self-test", "Normal", "Alarm", "Fault"]
         lookup:
           - key: 0x0000
             value: "Standby"
@@ -295,7 +293,6 @@ parameters:
 
       # Device - Type
       - name: "Device"
-        update_interval: 300
         class: "enum"
         state_class: ""
         uom: ""
@@ -303,16 +300,6 @@ parameters:
         rule: 1
         registers: [0x0000]
         icon: "mdi:information"
-        options:
-          [
-            "String Inverter",
-            "Single-Phase Hybrid Inverter",
-            "Microinverter",
-            "LV 3-Phase Hybrid Inverter",
-            "HV 3-Phase Hybrid Inverter",
-            "HV 3-Phase Inverter 6-15kw",
-            "HV 3-Phase Inverter 20-50kw",
-          ]
         lookup:
           - key: 2
             value: "String Inverter"
@@ -341,7 +328,6 @@ parameters:
       # Device - Modbus Address
       - name: "Device Modbus Address"
         attribute:
-        update_interval: 300
         class: ""
         state_class: ""
         uom: ""
@@ -354,31 +340,13 @@ parameters:
       - name: "Device Protocol Version"
         attribute:
         update_interval: 300
-        class: "enum"
-        state_class: ""
-        uom: ""
-        scale: 1
-        rule: 1
+        rule: 7
+        remove: "0."
         registers: [0x0002]
         icon: "mdi:information"
-        options: ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "5.13"]
-        lookup:
-          - key: 100
-            value: "1.0"
-          - key: 101
-            value: "1.1"
-          - key: 102
-            value: "1.2"
-          - key: 103
-            value: "1.3"
-          - key: 104
-            value: "1.4"
-          - key: 105
-            value: "1.5"
-          - key: 513
-            value: "5.13"
 
       - name: "Device Serial Number"
+        attribute:
         class: ""
         state_class: ""
         uom: ""
@@ -413,23 +381,42 @@ parameters:
         registers: [0x000E]
         icon: "mdi:map-marker"
 
-      - name: "Rated Power"
-        class: "energy"
+      - name: "Device Rated Power"
+        attribute:
+        class: "power"
         state_class: ""
         uom: "W"
         scale: 0.1
-        rule: 1
-        registers: [0x0010]
+        rule: 4
+        registers: [0x0010, 0x0011]
         icon: "mdi:solar-power"
 
-      - name: "Communication Protocol Version"
+      # Device - MPPTs
+      - name: "Device MPPTs"
+        attribute:
         class: ""
-        state_class: ""
+        state_class: "measurement"
         uom: ""
-        scale: 1
-        rule: 7
+        rule: 1
+        mask: 0x0F00
+        divide: 256
         registers: [0x0012]
-        icon: "mdi:wrench"
+        range:
+          min: 257
+          max: 2051
+
+      # Device - Phases
+      - name: "Device Phases"
+        attribute:
+        class: ""
+        state_class: "measurement"
+        uom: ""
+        rule: 1
+        mask: 0x000F
+        registers: [0x0012]
+        range:
+          min: 257
+          max: 2051
 
       - name: "Start-up Self-checking Time "
         class: ""
@@ -448,20 +435,6 @@ parameters:
         rule: 8
         registers: [0x0016, 0x0017, 0x0018]
         icon: "mdi:clock-time-three-outline"
-
-      - name: "Device Rated Power"
-        class: ""
-        state_class: ""
-        uom: ""
-        scale: 1
-        rule: 1
-        registers: [0x0008]
-        lookup:
-          - key: 1
-            value: "single-phase"
-          - key: 2
-            value: "three-phase"
-        icon: "mdi:map-marker"
 
       - name: "Device Chip-Typ"
         class: ""
@@ -497,6 +470,30 @@ parameters:
 
   - group: Alert
     items:
+      - name: "Device Alarm"
+        class: "enum"
+        state_class: ""
+        uom: ""
+        scale: 1
+        rule: 3
+        registers: [0x0065, 0x0066]
+        icon: "mdi:message-alert-outline"
+        lookup:
+          - key: 0x0000
+            value: "OK"
+          - key: 0x0002
+            value: "Fan failure"
+          - key: 0x0004
+            value: "Grid phase failure"
+          - key: 0x0008
+            value: "Meter communication failure"
+          - key: 0x40000000
+            value: "Battery loss"
+          - key: 0x80000000
+            value: "Parallel communication quality"
+          - key: "default"
+            value: "Error"
+
       - name: "Fault information Word 1"
         class: ""
         state_class: ""
@@ -545,75 +542,12 @@ parameters:
         rule: 10
         registers: [0x0068]
         icon: "mdi:alert-octagon-outline"
-        lookup:
-          - key: 0x0000
-            value: "OK"
-
-      - name: "Warning Code"
-        class: ""
-        state_class: ""
-        uom: ""
-        scale: 1
-        rule: 6
-        registers: [0x0065, 0x0066]
-        icon: "mdi:information-slab-circle-outline"
-        lookup:
-          - key: 0x0000
-            value: "None"
-          - key: W01
-            value: "W01 reserve"
-          - key: 0x1
-            value: "W01 reserve"
-          - key: W02
-            value: "W02 FAN_WARN"
-          - key: 0x2
-            value: "W02 FAN_WARN"
-          - key: W03
-            value: "W03 Grid phase wrong"
-          - key: 0x3
-            value: "W03 Grid phase wrong"
-          - key: W04
-            value: "W04 meter_Comm_Fail"
-          - key: 0x4
-            value: "W04 meter_Comm_Fail"
-
-      - name: "Alert"
-        class: ""
-        state_class: ""
-        uom: ""
-        scale: 1
-        rule: 3
-        registers: [0x0075, 0x0076]
-        icon: "mdi:message-alert-outline"
-        options:
-          [
-            "Ok",
-            "Fan failure",
-            "Grid error",
-            "Battery loss",
-            "Parallel communication quality",
-            "Error",
-          ]
-        lookup:
-          - key: 0x0000
-            value: "Ok"
-          - key: 0x0001
-            value: "Fan failure"
-          - key: 0x0002
-            value: "Grid error"
-          - key: 0x4000
-            value: "Battery loss"
-          - key: 0x8000
-            value: "Parallel communication quality"
-          - key: "default"
-            value: "Error"
 
   - group: Control
     items:
-      # Device - On/Off Switch
+      # Device - On/Off Switch (Empty name so the sensor has same name as the device, looks good! Can be used once per platform though)
       - name: ""
-        update_interval: 300
-        class: "switch"
+        platform: "switch"
         state_class: ""
         uom: ""
         scale: 1
@@ -622,8 +556,7 @@ parameters:
 
       # Island Protection - On/Off Switch
       - name: "Island Protection"
-        update_interval: 300
-        class: "switch"
+        platform: "switch"
         state_class: ""
         uom: ""
         scale: 1
@@ -632,8 +565,7 @@ parameters:
 
       # Soft Start - On/Off Switch
       - name: "Soft Start"
-        update_interval: 300
-        class: "switch"
+        platform: "switch"
         state_class: ""
         uom: ""
         scale: 1
@@ -642,8 +574,7 @@ parameters:
 
       # Over-frequency Load-shedding - On/Off Switch
       - name: "Over-frequency Load Reduction"
-        update_interval: 300
-        class: "switch"
+        platform: "switch"
         state_class: ""
         uom: ""
         scale: 1

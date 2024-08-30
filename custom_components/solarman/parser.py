@@ -4,6 +4,8 @@ import re
 import struct
 import logging
 
+from datetime import datetime
+
 from .const import *
 from .common import *
 
@@ -16,6 +18,7 @@ class ParameterParser:
         self._code = DEFAULT_REGISTERS_CODE
         self._min_span = DEFAULT_REGISTERS_MIN_SPAN
         self._digits = DEFAULT_DIGITS
+        self._registers_table = {}
         self._result = {}
 
         if "default" in self._profile:
@@ -30,6 +33,32 @@ class ParameterParser:
                 self._digits = default["digits"]
 
         _LOGGER.debug(f"{'Defaults' if 'default' in self._profile else 'Stock values'} for update_interval: {self._update_interval}, code: {self._code}, min_span: {self._min_span}, digits: {self._digits}")
+
+        requests_table = {}
+
+        if "requests" in self._profile and not "requests_fine_control" in self._profile:
+            for pr in self._profile["requests"]:
+                for r in range(pr[REQUEST_START], pr[REQUEST_END] + 1):
+                    requests_table[r] = get_request_code(pr)
+
+        for p in self.parameters():
+            for i in p["items"]:
+                if "registers" in i:
+                    for r in i["registers"]:
+                        self._registers_table[r] = (i["code"] if isinstance(i["code"], int) else i["code"]["read"]) if "code" in i else (p["code"] if "code" in p else (requests_table[r] if r in requests_table else self._code))
+
+        registers_table_values = self._registers_table.values()
+
+        self._is_single_code = all_same(list(registers_table_values))
+
+        if self._is_single_code:
+            self._code = next(iter(registers_table_values))
+
+        self._lambda = lambda x, y: y - x > self._min_span
+        self._lambda_code_aware = lambda x, y: self._registers_table[x] != self._registers_table[y] or y - x > self._min_span
+
+    def flush_states(self):
+        self._result = {}
 
     def parameters(self):
         return self._profile["parameters"]
@@ -46,8 +75,8 @@ class ParameterParser:
     def is_requestable(self, parameters):
         return self.is_valid(parameters) and self.is_enabled(parameters) and parameters["rule"] > 0
 
-    def is_scheduled(self, parameters, runtime):
-        return "realtime" in parameters or (runtime % (parameters[REQUEST_UPDATE_INTERVAL] if REQUEST_UPDATE_INTERVAL in parameters else self._update_interval) == 0)
+    def is_scheduled(self, parameters, runtime, default):
+        return "realtime" in parameters or (runtime % (parameters[REQUEST_UPDATE_INTERVAL] if REQUEST_UPDATE_INTERVAL in parameters else default) == 0)
 
     def default_from_unit_of_measurement(self, parameters):
         return None if (uom := parameters["uom"] if "uom" in parameters else (parameters["unit_of_measurement"] if "unit_of_measurement" in parameters else "")) and re.match(r"\S+", uom) else ""
@@ -57,7 +86,7 @@ class ParameterParser:
         self._result[key]["state"] = value
 
     def get_sensors(self):
-        result = [{"name": "Connection Status", "artificial": "state", "friendly_name": "Connection State"}, {"name": "Update Interval", "artificial": "interval"}]
+        result = [{"name": "Connection", "artificial": "state", "platform": "binary_sensor"}, {"name": "Update Interval", "artificial": "interval"}]
         for i in self.parameters():
             for j in i["items"]:
                 if self.is_sensor(j):
@@ -65,15 +94,9 @@ class ParameterParser:
 
         return result
 
-    def get_request_code(self, start, end):
-        if "requests" in self._profile:
-            for r in self._profile["requests"]:
-                if r[REQUEST_START] <= start <= end <= r[REQUEST_END]:
-                    return get_request_code(r)
-
-        return self._code
-
     def get_requests(self, runtime = 0):
+        self.flush_states()
+
         if "requests" in self._profile and "requests_fine_control" in self._profile:
             _LOGGER.debug("Fine control of request sets is enabled!")
             return self._profile["requests"]
@@ -82,19 +105,20 @@ class ParameterParser:
 
         for p in self.parameters():
             for i in p["items"]:
-                if self.is_requestable(i) and self.is_scheduled(i, runtime):
+                if self.is_requestable(i) and self.is_scheduled(i, runtime, self._update_interval if not REQUEST_UPDATE_INTERVAL in p else p[REQUEST_UPDATE_INTERVAL]):
                     self.set_state(i["name"], self.default_from_unit_of_measurement(i))
-                    for r in i["registers"]:
-                        registers.append(r)
+                    if "registers" in i:
+                        for r in i["registers"]:
+                            registers.append(r)
 
         if len(registers) == 0:
-            return {} 
+            return {}
 
         registers.sort()
 
-        groups = group_when(registers, lambda x, y: y - x > self._min_span)
+        groups = group_when(registers, self._lambda if self._is_single_code or all_same([self._registers_table[r] for r in registers]) else self._lambda_code_aware)
 
-        return [{ REQUEST_START: r[0], REQUEST_END: r[-1], REQUEST_CODE: self.get_request_code(r[0], r[-1]) } for r in groups]
+        return [{ REQUEST_START: r[0], REQUEST_END: r[-1], REQUEST_CODE: self._code if self._is_single_code else self._registers_table[r[0]] } for r in groups]
 
     def parse(self, rawData, start, length):
         for param in self.parameters():
@@ -203,6 +227,12 @@ class ParameterParser:
             if "mask" in definition:
                 value &= definition["mask"]
 
+            if "bit" in definition:
+                value = (value >> definition["bit"]) & 1
+
+            if "bitmask" in definition and (bitmask := definition["bitmask"]):
+                value = int((value & bitmask) / bitmask)
+
             if "lookup" not in definition:
                 if "offset" in definition:
                     value = value - definition["offset"]
@@ -289,6 +319,9 @@ class ParameterParser:
 
                 self.set_state(key, get_number(value, definition["digits"] if "digits" in definition else self._digits))
 
+                if "attributes" in definition and "value" in definition["attributes"]:
+                    self._result[key]["value"] = int(value)
+
         return
 
     def try_parse_signed(self, rawData, definition, start, length):
@@ -314,7 +347,7 @@ class ParameterParser:
 
         for r in definition["registers"]:
             index = r - start
-            if (index >= 0) and (index < length):
+            if index >= 0 and index < length:
                 temp = rawData[index]
                 value = value + chr(temp >> 8) + chr(temp & 0xFF)
             else:
@@ -332,9 +365,8 @@ class ParameterParser:
 
         for r in definition["registers"]:
             index = r - start
-            if (index >= 0) and (index < length):
-                temp = rawData[index]
-                value.append(hex(temp))
+            if index >= 0 and index < length:
+                value.append(hex(rawData[index]))
             else:
                 found = False
 
@@ -350,13 +382,16 @@ class ParameterParser:
 
         for r in definition["registers"]:
             index = r - start
-            if (index >= 0) and (index < length):
+            if index >= 0 and index < length:
                 temp = rawData[index]
-                value = value + str(temp >> 12) + "." +  str(temp >> 8 & 0x0F) + "." + str(temp >> 4 & 0x0F) + "." + str(temp & 0x0F)
+                value = value + str(temp >> 12) + "." + str(temp >> 8 & 0x0F) + "." + str(temp >> 4 & 0x0F) + "." + str(temp & 0x0F)
             else:
                 found = False
 
         if found:
+            if "remove" in definition:
+                value = value.replace(definition["remove"], "")
+
             self.set_state(key, value)
 
         return
@@ -366,39 +401,58 @@ class ParameterParser:
         found = True
         value = ""
 
-        print("start: ", start)
+        registers_count = len(definition["registers"])
 
-        for i,r in enumerate(definition["registers"]):
+        for i, r in enumerate(definition["registers"]):
             index = r - start
-            print ("index: ",index)
-            if (index >= 0) and (index < length):
+            if index >= 0 and index < length:
                 temp = rawData[index]
-                if(i==0):
-                    value = value + str(temp >> 8)  + "/" + str(temp & 0xFF) + "/"
-                elif (i==1):
-                    value = value + str(temp >> 8)  + " " + str(temp & 0xFF) + ":"
-                elif(i==2):
-                    value = value + str(temp >> 8)  + ":" + str(temp & 0xFF)
-                else:
-                    value = value + str(temp >> 8)  + str(temp & 0xFF)
+                if registers_count == 3:
+                    if i == 0:
+                        value = value + str(temp >> 8) + "/" + str(temp & 0xFF) + "/"
+                    elif i == 1:
+                        value = value + str(temp >> 8) + " " + str(temp & 0xFF) + ":"
+                    elif i == 2:
+                        value = value + str(temp >> 8) + ":" + str(temp & 0xFF)
+                    else:
+                        value = value + str(temp >> 8) + str(temp & 0xFF)
+                elif registers_count == 6:
+                    if i == 0 or i == 1:
+                        value = value + str(temp) + "/"
+                    elif i == 2:
+                        value = value + str(temp) + " "
+                    elif i == 3 or i == 4:
+                        value = value + str(temp) + ":"
+                    else:
+                        value = value + str(temp)
             else:
                 found = False
 
         if found:
-            self.set_state(key, value)
+            if value.endswith(":"):
+                value = value[:-1]
+
+            self.set_state(key, datetime.strptime(value, '%y/%m/%d %H:%M:%S'))
 
         return
 
     def try_parse_time(self, rawData, definition, start, length):
-        key = definition["name"]         
+        key = definition["name"]
         found = True
         value = ""
 
-        for r in definition["registers"]:
+        registers_count = len(definition["registers"])
+
+        for i, r in enumerate(definition["registers"]):
             index = r - start
-            if (index >= 0) and (index < length):
+            if index >= 0 and index < length:
                 temp = rawData[index]
-                value = str("{:02d}".format(int(temp / 100))) + ":" + str("{:02d}".format(int(temp % 100)))
+                if registers_count == 1:
+                    value = str("{:02d}".format(int(temp / 100))) + ":" + str("{:02d}".format(int(temp % 100)))
+                else:
+                    value = value + str("{:02d}".format(int(temp)))
+                    if i == 0 or (i == 1 and registers_count > 2):
+                        value = value + ":"
             else:
                 found = False
 
@@ -414,9 +468,8 @@ class ParameterParser:
 
         for r in definition["registers"]:
             index = r - start
-            if (index >= 0) and (index < length):
-                temp = rawData[index]
-                value.append((temp))
+            if index >= 0 and index < length:
+                value.append(rawData[index])
             else:
                 found = False
 

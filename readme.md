@@ -1,5 +1,6 @@
 # ⚡ Solarman Stick Logger
 
+[![License](https://img.shields.io/github/license/davidrapan/ha-solarman)](LICENSE)
 [![GitHub Activity](https://img.shields.io/github/commit-activity/y/davidrapan/ha-solarman?label=commits)](https://github.com/davidrapan/ha-solarman/commits/main)
 [![HACS Supported](https://img.shields.io/badge/HACS-Supported-03a9f4)](https://github.com/custom-components/hacs)
 [![Community Forum](https://img.shields.io/badge/community-forum-03a9f4)](https://community.home-assistant.io/t/solarman-stick-logger-by-david-rapan)
@@ -10,6 +11,7 @@
 - [Automations](https://github.com/davidrapan/ha-solarman/wiki/Automations)
 - [Custom Sensors](https://github.com/davidrapan/ha-solarman/wiki/Custom-Sensors)
 - [Dashboards](https://github.com/davidrapan/ha-solarman/wiki/Dashboards)
+- [Documentation](https://github.com/davidrapan/ha-solarman/wiki/Documentation)
 - [Naming Scheme](https://github.com/davidrapan/ha-solarman/wiki/Naming-Scheme)
 - [Supported Devices](https://github.com/davidrapan/ha-solarman/wiki/Supported-Devices)
 
@@ -23,7 +25,7 @@
 > Implemented using asynchronous [pysolarmanv5](https://github.com/jmccrohan/pysolarmanv5) and fetching through [DataUpdateCoordinator](https://developers.home-assistant.io/docs/integration_fetching_data/) + incorporates many more fixes and improvements and also up to date features of HA (while trying to fully preserve backward compatibility)
 
 > [!WARNING]  
-> It's not possible to use this integration side by side (with the same device) with the implementation from Stephan! It will override it.  
+> It's not possible to install this integration side by side using HACS with the version from Stephan! It will be overwritten when not done manually  
 
 ## 🔨 Installation
 

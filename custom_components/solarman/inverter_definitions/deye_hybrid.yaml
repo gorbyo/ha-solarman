@@ -126,21 +126,20 @@ parameters:
         registers: [0x0047]
         icon: "mdi:battery-minus"
 
-      - name: "Battery Status"
+      - name: "Battery State"
         class: "enum"
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
         registers: [0x00BD]
-        options: ["Charge", "Stand-by", "Discharge"]
         lookup:
           - key: 0
-            value: "Charge"
+            value: "charging"
           - key: 1
-            value: "Stand-by"
+            value: "idle"
           - key: 2
-            value: "Discharge"
+            value: "discharging"
         icon: "mdi:battery"
 
       - name: "Battery Power"
@@ -159,7 +158,7 @@ parameters:
         rule: 1
         registers: [0x00B7]
 
-      - name: "Battery SOC"
+      - name: "Battery"
         class: "battery"
         state_class: "measurement"
         uom: "%"
@@ -231,7 +230,7 @@ parameters:
         registers: [0x00A1]
         icon: "mdi:transmission-tower"
 
-      - name: "Internal CT L1 Power"
+      - name: "Internal CT1 Power"
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -240,7 +239,7 @@ parameters:
         registers: [0x00A7]
         icon: "mdi:transmission-tower"
 
-      - name: "Internal CT L2 Power"
+      - name: "Internal CT2 Power"
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -249,7 +248,7 @@ parameters:
         registers: [0x00A8]
         icon: "mdi:transmission-tower"
 
-      - name: "External CT L1 Power"
+      - name: "External CT1 Power"
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -258,7 +257,7 @@ parameters:
         registers: [0x00AA]
         icon: "mdi:transmission-tower"
 
-      - name: "External CT L2 Power"
+      - name: "External CT2 Power"
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -369,34 +368,32 @@ parameters:
         rule: 3
         registers: [0x0055, 0x0056]
 
-      - name: "SmartLoad Enable Status"
-        class: "enum"
+      - name: "SmartLoad"
+        update_interval: 30
+        platform: "binary_sensor"
+        device_class: power
         state_class: ""
         uom: ""
-        scale: 1
         rule: 1
         registers: [0x00C3]
-        options: ["OFF", "ON"]
-        lookup:
-          - key: 0
-            value: "OFF"
-          - key: 1
-            value: "ON"
+        bit: 3
         icon: "mdi:lightning-bolt-circle"
 
-  - group: Inverter
+  - group: Device
     items:
-      - name: "Running Status"
+      # Device - Operating (Running) state
+      - name: "Device State"
+        update_interval: 30
         class: "enum"
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
         registers: [0x003B]
+        icon: "mdi:information"
         range:
           min: 0
           max: 5
-        options: ["Standby", "Self-test", "Normal", "Alarm", "Fault"]
         lookup:
           - key: 0x0000
             value: "Standby"
@@ -408,7 +405,6 @@ parameters:
             value: "Alarm"
           - key: 0x0004
             value: "Fault"
-        icon: "mdi:information"
 
       - name: "Power"
         class: "power"
@@ -510,35 +506,26 @@ parameters:
         registers: [0x000D]
         isstr: true
 
-      - name: "Grid-connected Status"
-        class: "enum"
+      - name: "Grid"
+        update_interval: 30
+        platform: "binary_sensor"
+        device_class: power
         state_class: ""
         uom: ""
-        scale: 1
         rule: 1
         registers: [0x00C2]
-        options: ["Off-Grid", "On-Grid"]
-        lookup:
-          - key: 0
-            value: "Off-Grid"
-          - key: 1
-            value: "On-Grid"
+        icon: "mdi:transmission-tower"
 
-      - name: "Gen-connected Status"
-        class: "enum"
+      - name: "Generator"
+        update_interval: 30
+        platform: "binary_sensor"
+        device_class: power
         state_class: ""
         uom: ""
-        scale: 1
         rule: 1
         registers: [0x00A6]
-        options: ["none", "On"]
-        lookup:
-          - key: 0
-            value: "none"
-          - key: 1
-            value: "On"
 
-      - name: "Gen Power"
+      - name: "Generator Power"
         class: "power"
         state_class: "measurement"
         uom: "W"
@@ -553,14 +540,6 @@ parameters:
         scale: 1
         rule: 3
         registers: [0x00F4, 0x00F7]
-        options:
-          [
-            "Selling First",
-            "Zero-Export to Load&Solar Sell",
-            "Zero-Export to Home&Solar Sell",
-            "Zero-Export to Load",
-            "Zero-Export to Home",
-          ]
         lookup:
           - key: 0
             value: "Selling First"
@@ -586,240 +565,314 @@ parameters:
 
   - group: Time of Use
     items:
-      - name: "Time of use Time 1"
-        class: ""
-        state_class: ""
+      - name: "Program 1 Time"
+        update_interval: 300
+        platform: "time"
+        state_class: measurement
         uom: ""
         scale: 1
         rule: 9
         registers: [0x00FA]
-        icon: "mdi:timelapse"
+        range:
+          min: 0000
+          max: 2359
+        icon: mdi:sun-clock
 
-      - name: "Time of use Time 2"
-        class: ""
-        state_class: ""
+      - name: "Program 2 Time"
+        update_interval: 300
+        platform: "time"
+        state_class: measurement
         uom: ""
         scale: 1
         rule: 9
         registers: [0x00FB]
-        icon: "mdi:timelapse"
+        range:
+          min: 0000
+          max: 2359
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Time 3"
-        class: ""
-        state_class: ""
+      - name: "Program 3 Time"
+        update_interval: 300
+        platform: "time"
+        state_class: measurement
         uom: ""
         scale: 1
         rule: 9
         registers: [0x00FC]
-        icon: "mdi:timelapse"
+        range:
+          min: 0000
+          max: 2359
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Time 4"
-        class: ""
-        state_class: ""
+      - name: "Program 4 Time"
+        update_interval: 300
+        platform: "time"
+        state_class: measurement
         uom: ""
         scale: 1
         rule: 9
         registers: [0x00FD]
-        icon: "mdi:timelapse"
+        range:
+          min: 0000
+          max: 2359
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Time 5"
-        class: ""
-        state_class: ""
+      - name: "Program 5 Time"
+        update_interval: 300
+        platform: "time"
+        state_class: measurement
         uom: ""
         scale: 1
         rule: 9
         registers: [0x00FE]
-        icon: "mdi:timelapse"
+        range:
+          min: 0000
+          max: 2359
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Time 6"
-        class: ""
-        state_class: ""
+      - name: "Program 6 Time"
+        update_interval: 300
+        platform: "time"
+        state_class: measurement
         uom: ""
         scale: 1
         rule: 9
         registers: [0x00FF]
-        icon: "mdi:timelapse"
+        range:
+          min: 0000
+          max: 2359
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Power 1"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 1 Power"
+        update_interval: 300
+        platform: number
+        class: "power"
+        state_class: measurement
+        uom: "W"
         scale: 1
         rule: 1
         registers: [0x0100]
-        icon: "mdi:lightning-bolt-outline"
+        range:
+          min: 0000
+          max: 12000
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Power 2"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 2 Power"
+        update_interval: 300
+        platform: number
+        class: "power"
+        state_class: measurement
+        uom: "W"
         scale: 1
         rule: 1
         registers: [0x0101]
-        icon: "mdi:lightning-bolt-outline"
+        range:
+          min: 0000
+          max: 12000
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Power 3"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 3 Power"
+        update_interval: 300
+        platform: number
+        class: "power"
+        state_class: measurement
+        uom: "W"
         scale: 1
         rule: 1
         registers: [0x0102]
-        icon: "mdi:lightning-bolt-outline"
+        range:
+          min: 0000
+          max: 12000
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Power 4"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 4 Power"
+        update_interval: 300
+        platform: number
+        class: "power"
+        state_class: measurement
+        uom: "W"
         scale: 1
         rule: 1
         registers: [0x0103]
-        icon: "mdi:lightning-bolt-outline"
+        range:
+          min: 0000
+          max: 12000
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Power 5"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 5 Power"
+        update_interval: 300
+        platform: number
+        class: "power"
+        state_class: measurement
+        uom: "W"
         scale: 1
         rule: 1
         registers: [0x0104]
-        icon: "mdi:lightning-bolt-outline"
+        range:
+          min: 0000
+          max: 12000
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Power 6"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 6 Power"
+        update_interval: 300
+        platform: number
+        class: "power"
+        state_class: measurement
+        uom: "W"
         scale: 1
         rule: 1
         registers: [0x0105]
-        icon: "mdi:lightning-bolt-outline"
+        range:
+          min: 0000
+          max: 12000
+        icon: mdi:sun-clock
 
-      - name: "Time of Use SOC 1"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 1 SOC"
+        update_interval: 300
+        platform: number
+        state_class: measurement
+        uom: "%"
         scale: 1
         rule: 1
         registers: [0x010C]
-        icon: "mdi:battery"
+        range:
+          min: 0
+          max: 100
+        icon: mdi:sun-clock
 
-      - name: "Time of Use SOC 2"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 2 SOC"
+        update_interval: 300
+        platform: number
+        state_class: measurement
+        uom: "%"
         scale: 1
         rule: 1
         registers: [0x010D]
-        icon: "mdi:battery"
+        range:
+          min: 0
+          max: 100
+        icon: mdi:sun-clock
 
-      - name: "Time of Use SOC 3"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 3 SOC"
+        update_interval: 300
+        platform: number
+        state_class: measurement
+        uom: "%"
         scale: 1
         rule: 1
         registers: [0x010E]
-        icon: "mdi:battery"
+        range:
+          min: 0
+          max: 100
+        icon: mdi:sun-clock
 
-      - name: "Time of Use SOC 4"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 4 SOC"
+        update_interval: 300
+        platform: number
+        state_class: measurement
+        uom: "%"
         scale: 1
         rule: 1
         registers: [0x010F]
-        icon: "mdi:battery"
+        range:
+          min: 0
+          max: 100
+        icon: mdi:sun-clock
 
-      - name: "Time of Use SOC 5"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 5 SOC"
+        update_interval: 300
+        platform: number
+        state_class: measurement
+        uom: "%"
         scale: 1
         rule: 1
         registers: [0x0110]
-        icon: "mdi:battery"
+        range:
+          min: 0
+          max: 100
+        icon: mdi:sun-clock
 
-      - name: "Time of Use SOC 6"
-        class: ""
-        state_class: ""
-        uom: ""
+      - name: "Program 6 SOC"
+        update_interval: 300
+        platform: number
+        state_class: measurement
+        uom: "%"
         scale: 1
         rule: 1
         registers: [0x0111]
-        icon: "mdi:battery"
+        range:
+          min: 0
+          max: 100
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Enable 1"
-        class: ""
+      - name: "Program 1"
+        platform: switch
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
         mask: 1
         registers: [0x0112]
-        icon: "mdi:checkbox-marked-outline"
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Enable 2"
-        class: ""
+      - name: "Program 2"
+        platform: switch
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
         mask: 1
         registers: [0x0113]
-        icon: "mdi:checkbox-marked-outline"
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Enable 3"
-        class: ""
+      - name: "Program 3"
+        platform: switch
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
         mask: 1
         registers: [0x0114]
-        icon: "mdi:checkbox-marked-outline"
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Enable 4"
-        class: ""
+      - name: "Program 4"
+        platform: switch
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
         mask: 1
         registers: [0x0115]
-        icon: "mdi:checkbox-marked-outline"
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Enable 5"
-        class: ""
+      - name: "Program 5"
+        platform: switch
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
         mask: 1
         registers: [0x0116]
-        icon: "mdi:checkbox-marked-outline"
+        icon: mdi:sun-clock
 
-      - name: "Time of Use Enable 6"
-        class: ""
+      - name: "Program 6"
+        platform: switch
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
         mask: 1
         registers: [0x0117]
-        icon: "mdi:checkbox-marked-outline"
+        icon: mdi:sun-clock
 
-      - name: "Time of use"
-        class: "enum"
+      - name: "Time of Use"
+        update_interval: 300
+        platform: "switch"
         state_class: ""
         uom: ""
         scale: 1
         rule: 1
-        mask: 1
         registers: [0x00F8]
-        icon: "mdi:checkbox-marked-outline"
-        options: ["Disable", "Enable"]
-        lookup:
-          - key: 0
-            value: "Disable"
-          - key: 1
-            value: "Enable"
+        value:
+          on: 0x00FF
+          off: 0x0000
