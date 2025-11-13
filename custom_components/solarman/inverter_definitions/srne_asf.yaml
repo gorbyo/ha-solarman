@@ -6,7 +6,7 @@
 
 info:
   manufacturer: SRNE
-  model: ASF
+  model: ASP
 
 default:
   update_interval: 5
@@ -16,7 +16,7 @@ default:
 parameters:
   - group: Battery
     items:
-      - name: "Battery"
+      - name: "Battery SOC"
         class: "battery"
         state_class: "measurement"
         uom: "%"
@@ -30,6 +30,27 @@ parameters:
         scale: 0.1
         rule: 1
         registers: [0x0101]
+
+      # - name: "Timed"
+      #   class: "time"
+      #   state_class: "measurement"
+      #   rule: 9
+      #   scale: 1
+      #   formula: >
+      #     (value // 256).toFixed(0) + 
+      #     (value % 256).toFixed(0).padStart(2, '0')          
+
+      # - name: "Time Raw"
+      #   class: "time"
+      #   state_class: "measurement"
+      #   registers: [0xE026]
+      #   value_template: >
+      #     {% set val = value | int %}
+      #     {% set hours = val // 256 %}
+      #     {% set minutes = val % 256 %}
+      #     {{ "%02d:%02d"|format(hours, minutes) }}
+
+
 
       - name: "Battery Current"
         class: "current"
@@ -92,7 +113,7 @@ parameters:
         registers: [0x0109]
         icon: "mdi:solar-power-variant"
 
-      - name: "PV Power"
+      - name: "PV Total Power"
         mppt: 1
         class: "power"
         state_class: "measurement"
@@ -140,6 +161,42 @@ parameters:
 
   - group: Inverter
     items:
+      - name: State Charge Mode
+        rule: 1
+        registers: [0x010B]
+        icon: "mdi:state-machine"
+        lookup:
+          - key: 0x0000
+            value: "Charge off"
+          - key: 0x0001
+            value: "Quick charge"
+          - key: 0x0002
+            value: "Const voltage charge"
+          - key: 0x0004
+            value: "Float charge"
+          - key: 0x0005
+            value: "Reserved"
+          - key: 0x0006
+            value: "Li battery activate"
+          - key: 0x0008
+            value: "Full"
+
+      - name: "State"
+        update_interval: 300
+        class: "enum"
+        rule: 1
+        registers: [0x0210]
+        icon: "mdi:state-machine"
+        lookup:
+          - key: 0
+            value: "Initialization"
+          - key: 1
+            value: "Standby"
+          - key: 2
+            value: "AC power operation"
+          - key: 3
+            value: "Inverter operation"
+
       - name: "PV Voltage"
         mppt: 1
         class: "voltage"
@@ -149,6 +206,50 @@ parameters:
         rule: 1
         registers: [0x0212]
         icon: "mdi:solar-power-variant"
+
+      - name: "DC Temperature"
+        hidden:
+        class: "temperature"
+        state_class: "measurement"
+        uom: "°C"
+        scale: 0.1
+        rule: 2
+        registers: [0x0220]
+
+      - name: "AC Temperature"
+        hidden:
+        class: "temperature"
+        state_class: "measurement"
+        uom: "°C"
+        scale: 0.1
+        rule: 2
+        registers: [0x0221]
+
+      - name: "Transformer Temperature"
+        class: "temperature"
+        state_class: "measurement"
+        uom: "°C"
+        scale: 0.1
+        rule: 2
+        registers: [0x0222]
+
+      - name: "Ambient Temperature"
+        hidden:
+        class: "temperature"
+        state_class: "measurement"
+        uom: "°C"
+        scale: 0.1
+        rule: 2
+        registers: [0x0223]
+
+## GRID
+      - name: "Grid Frequency"
+        class: "frequency"
+        state_class: "measurement"
+        uom: "Hz"
+        scale: 0.01
+        rule: 1
+        registers: [0x0215]
 
       - name: "Grid L1 Voltage"
         l: 1
@@ -170,15 +271,56 @@ parameters:
         registers: [0x0214]
         icon: "mdi:transmission-tower"
 
-      - name: "Grid Frequency"
+      - name: "Grid L2 Voltage"
+        l: 2
+        class: "voltage"
+        state_class: "measurement"
+        uom: "V"
+        scale: 0.1
+        rule: 1
+        registers: [0x022A]
+        icon: "mdi:transmission-tower"
+
+      - name: "Grid L2 Current"
+        l: 2
+        class: "current"
+        state_class: "measurement"
+        uom: "A"
+        scale: 0.1
+        rule: 1
+        registers: [0x0238]
+        icon: "mdi:transmission-tower"
+
+      - name: "Grid L3 Voltage"
+        l: 3
+        class: "voltage"
+        state_class: "measurement"
+        uom: "V"
+        scale: 0.1
+        rule: 1
+        registers: [0x022B]
+        icon: "mdi:transmission-tower"
+
+      - name: "Grid L3 Current"
+        l: 3
+        class: "current"
+        state_class: "measurement"
+        uom: "A"
+        scale: 0.1
+        rule: 1
+        registers: [0x0239]
+        icon: "mdi:transmission-tower"
+
+## INVERTER
+      - name: "Inverter Output Frequency"
         class: "frequency"
         state_class: "measurement"
         uom: "Hz"
         scale: 0.01
         rule: 1
-        registers: [0x0215]
+        registers: [0x0218]
 
-      - name: "Output L1 Voltage"
+      - name: "Inverter L1 Output Voltage"
         l: 1
         class: "voltage"
         state_class: "measurement"
@@ -187,7 +329,7 @@ parameters:
         rule: 1
         registers: [0x0216]
 
-      - name: "Output L1 Current"
+      - name: "Inverter L1 Inductive Current"
         l: 1
         class: "current"
         state_class: "measurement"
@@ -196,14 +338,44 @@ parameters:
         rule: 2
         registers: [0x0217]
 
-      - name: "Output Frequency"
-        class: "frequency"
+      - name: "Inverter L2 Output Voltage"
+        l: 2
+        class: "voltage"
         state_class: "measurement"
-        uom: "Hz"
-        scale: 0.01
+        uom: "V"
+        scale: 0.1
         rule: 1
-        registers: [0x0218]
+        registers: [0x022C]
 
+      - name: "Inverter L2 Inductive Current"
+        l: 2
+        class: "current"
+        state_class: "measurement"
+        uom: "A"
+        scale: 0.1
+        rule: 2
+        registers: [0x022E]
+
+      - name: "Inverter L3 Output Voltage"
+        l: 3
+        class: "voltage"
+        state_class: "measurement"
+        uom: "V"
+        scale: 0.1
+        rule: 1
+        registers: [0x022D]
+
+
+      - name: "Inverter L3 Inductive Current"
+        l: 3
+        class: "current"
+        state_class: "measurement"
+        uom: "A"
+        scale: 0.1
+        rule: 2
+        registers: [0x022F]
+
+## LOAD
       - name: "Load L1 Current"
         l: 1
         class: "current"
@@ -229,97 +401,6 @@ parameters:
         rule: 1
         registers: [0x021C]
 
-      - name: "DC Temperature"
-        hidden:
-        class: "temperature"
-        state_class: "measurement"
-        uom: "°C"
-        scale: 0.1
-        rule: 1
-        registers: [0x0220]
-
-      - name: "AC Temperature"
-        hidden:
-        class: "temperature"
-        state_class: "measurement"
-        uom: "°C"
-        scale: 0.1
-        rule: 1
-        registers: [0x0221]
-
-      - name: "Temperature"
-        class: "temperature"
-        state_class: "measurement"
-        uom: "°C"
-        scale: 0.1
-        rule: 1
-        registers: [0x0222]
-
-      - name: "Ambient Temperature"
-        hidden:
-        class: "temperature"
-        state_class: "measurement"
-        uom: "°C"
-        scale: 0.1
-        rule: 1
-        registers: [0x0223]
-
-      - name: "Grid L2 Voltage"
-        l: 2
-        class: "voltage"
-        state_class: "measurement"
-        uom: "V"
-        scale: 0.1
-        rule: 1
-        registers: [0x022A]
-        icon: "mdi:transmission-tower"
-
-      - name: "Grid L3 Voltage"
-        l: 3
-        class: "voltage"
-        state_class: "measurement"
-        uom: "V"
-        scale: 0.1
-        rule: 1
-        registers: [0x022B]
-        icon: "mdi:transmission-tower"
-
-      - name: "Output L2 Voltage"
-        l: 2
-        class: "voltage"
-        state_class: "measurement"
-        uom: "V"
-        scale: 0.1
-        rule: 1
-        registers: [0x022C]
-
-      - name: "Output L3 Voltage"
-        l: 3
-        class: "voltage"
-        state_class: "measurement"
-        uom: "V"
-        scale: 0.1
-        rule: 1
-        registers: [0x022D]
-
-      - name: "Output L2 Current"
-        l: 2
-        class: "current"
-        state_class: "measurement"
-        uom: "A"
-        scale: 0.1
-        rule: 2
-        registers: [0x022E]
-
-      - name: "Output L3 Current"
-        l: 3
-        class: "current"
-        state_class: "measurement"
-        uom: "A"
-        scale: 0.1
-        rule: 2
-        registers: [0x022F]
-
       - name: "Load L2 Current"
         l: 2
         class: "current"
@@ -328,6 +409,22 @@ parameters:
         scale: 0.1
         rule: 1
         registers: [0x0230]
+
+      - name: "Load L2 Power"
+        l: 2
+        class: "power"
+        state_class: "measurement"
+        uom: "W"
+        rule: 1
+        registers: [0x0232]
+
+      - name: "Load L2 Apparent Power"
+        l: 2
+        class: "apparent_power"
+        state_class: "measurement"
+        uom: "VA"
+        rule: 1
+        registers: [0x0234]
 
       - name: "Load L3 Current"
         l: 3
@@ -338,14 +435,6 @@ parameters:
         rule: 1
         registers: [0x0231]
 
-      - name: "Load L2 Power"
-        l: 2
-        class: "power"
-        state_class: "measurement"
-        uom: "W"
-        rule: 1
-        registers: [0x0232]
-
       - name: "Load L3 Power"
         l: 3
         class: "power"
@@ -353,14 +442,6 @@ parameters:
         uom: "W"
         rule: 1
         registers: [0x0233]
-
-      - name: "Load L2 Apparent Power"
-        l: 2
-        class: "apparent_power"
-        state_class: "measurement"
-        uom: "VA"
-        rule: 1
-        registers: [0x0234]
 
       - name: "Load L3 Apparent Power"
         l: 3
@@ -370,45 +451,17 @@ parameters:
         rule: 1
         registers: [0x0235]
 
-      - name: "Grid L2 Current"
-        l: 2
-        class: "current"
-        state_class: "measurement"
-        uom: "A"
-        scale: 0.1
-        rule: 1
-        registers: [0x0238]
-        icon: "mdi:transmission-tower"
-
-      - name: "Grid L3 Current"
-        l: 3
-        class: "current"
-        state_class: "measurement"
-        uom: "A"
-        scale: 0.1
-        rule: 1
-        registers: [0x0239]
-        icon: "mdi:transmission-tower"
-
-      - name: "State"
-        update_interval: 300
-        class: "enum"
-        rule: 1
-        registers: [0x0210]
-        icon: "mdi:state-machine"
-        lookup:
-          - key: 0
-            value: "Initialization"
-          - key: 1
-            value: "Standby"
-          - key: 2
-            value: "AC power operation"
-          - key: 3
-            value: "Inverter operation"
 
   - group: Settings
     update_interval: 300
     items:
+      - name: "System Date Time"
+        update_interval: 30
+        platform: datetime
+        rule: 8
+        registers: [0x020C, 0x020D, 0x020E]
+        icon: "mdi:clock"
+
       - name: Batttery Discharge Limit
         platform: number
         state_class: measurement
@@ -508,6 +561,48 @@ parameters:
             value: "Disabled"
           - key: 1
             value: "Enabled"
+
+      - name: "Timed 1 Charge Start"
+        class: enum
+        state_class: measurement
+        rule: 1
+        registers: [0xE026]
+        icon: mdi:sun-clock
+
+      - name: "Timed 1 Charge End"
+        class: enum
+        state_class: "measurement"
+        rule: 1
+        registers: [0xE027]
+        icon: mdi:sun-clock
+
+      - name: "Timed 2 Charge Start"
+        class: enum
+        state_class: measurement
+        rule: 1
+        registers: [0xE028]
+        icon: mdi:sun-clock
+
+      - name: "Timed 2 Charge End"
+        class: enum
+        state_class: "measurement"
+        rule: 1
+        registers: [0xE029]
+        icon: mdi:sun-clock
+
+      - name: "Timed 3 Charge Start"
+        class: enum
+        state_class: measurement
+        rule: 1
+        registers: [0xE02A]
+        icon: mdi:sun-clock
+
+      - name: "Timed 3 Charge End"
+        class: enum
+        state_class: "measurement"
+        rule: 1
+        registers: [0xE02B]
+        icon: mdi:sun-clock
 
       - name: Timed Discharge
         platform: select
